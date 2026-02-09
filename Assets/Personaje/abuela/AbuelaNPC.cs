@@ -2,79 +2,154 @@ using UnityEngine;
 
 public class AbuelaNPC : MonoBehaviour
 {
-    public float velocidadHuida = 4f;
+    [Header("Movimiento")]
+    public float velocidadPaseo = 1.5f;
+    public float velocidadHuida = 5f;
     public float distanciaDeteccion = 8f;
-    [Range(0, 100)] public int probabilidadSusto = 20;
 
     private Transform jugador;
     private bool haSidoInteractuada = false;
-    private CharacterController cc;
+    private Vector3 direccionPaseo;
+    private float cronometroCambio;
+
+    private CharacterController controller;
+    private bool puedoRobar = false;
+    private GameObject visualPrompt;
 
     void Start()
     {
-        cc = GetComponent<CharacterController>();
+        controller = GetComponent<CharacterController>();
         GameObject p = GameObject.FindGameObjectWithTag("Player");
         if (p != null) jugador = p.transform;
+
+        visualPrompt = GameObject.Find("TextoRobar");
+        if (visualPrompt != null) visualPrompt.SetActive(false);
+
+        ElegirNuevaDireccion();
     }
 
     void Update()
     {
-        if (haSidoInteractuada || jugador == null || cc == null) return;
+        if (haSidoInteractuada || jugador == null) return;
 
         float distancia = Vector3.Distance(transform.position, jugador.position);
 
+        // Movimiento con CharacterController (Detecta colisiones con edificios)
         if (distancia < distanciaDeteccion)
+            Mover((transform.position - jugador.position).normalized, velocidadHuida);
+        else
+            Pasear();
+
+        // Lógica de robo con tecla E
+        if (puedoRobar && Input.GetKeyDown(KeyCode.E))
         {
-            Vector3 dir = (transform.position - jugador.position).normalized;
-            dir.y = 0;
-            // Movemos con el CharacterController propio de la abuela
-            cc.Move(dir * velocidadHuida * Time.deltaTime);
-            if (dir != Vector3.zero)
-                transform.rotation = Quaternion.Slerp(transform.rotation, Quaternion.LookRotation(dir), 0.2f);
+            IniciarRobo();
         }
     }
 
-    // Usamos OnTriggerEnter porque la abuela es un Trigger
+    void Pasear()
+    {
+        cronometroCambio += Time.deltaTime;
+        if (cronometroCambio >= 3f) ElegirNuevaDireccion();
+        Mover(direccionPaseo, velocidadPaseo);
+    }
+
+    void Mover(Vector3 dir, float vel)
+    {
+        if (controller != null && controller.enabled)
+        {
+            // Aplicamos gravedad para que no floten
+            Vector3 movimiento = dir * vel;
+            movimiento.y = -9.81f;
+
+            controller.Move(movimiento * Time.deltaTime);
+
+            // Rotación suave
+            Vector3 dirMirar = new Vector3(dir.x, 0, dir.z);
+            if (dirMirar != Vector3.zero)
+                transform.rotation = Quaternion.Slerp(transform.rotation, Quaternion.LookRotation(dirMirar), 0.15f);
+        }
+    }
+
     private void OnTriggerEnter(Collider other)
     {
-        // Forzamos la detección por Tag
-        if (other.CompareTag("Player") && !haSidoInteractuada)
+        if (other.CompareTag("Player"))
         {
-            Debug.Log("¡ELVIS DETECTADO!");
-            ResolverEncuentro();
+            puedoRobar = true;
+            if (visualPrompt != null) visualPrompt.SetActive(true);
         }
     }
 
-    void ResolverEncuentro()
+    private void OnTriggerExit(Collider other)
     {
-        haSidoInteractuada = true;
-        if (Random.Range(0, 100) < probabilidadSusto)
+        if (other.CompareTag("Player"))
+        {
+            puedoRobar = false;
+            if (visualPrompt != null) visualPrompt.SetActive(false);
+        }
+    }
+
+    void IniciarRobo()
+    {
+        haSidoInteractuada = true; // Bloquea más robos a esta abuela
+        if (visualPrompt != null) visualPrompt.SetActive(false);
+
+        int probabilidad = Random.Range(0, 100);
+
+        if (probabilidad < 30) // 30% de probabilidad de susto
         {
             EjecutarSusto();
         }
         else
         {
-            PlayerPersistence.instance.AddCoins(Random.Range(100, 300));
+            PlayerPersistence.instance.AddCoins(Random.Range(100, 301));
+            FinalizarAbuela();
         }
-        Destroy(gameObject, 0.5f);
     }
 
     void EjecutarSusto()
     {
-        GameObject susto = GameObject.Find("AbuelaSusto");
-        if (susto != null)
+        GameObject sustoObj = GameObject.Find("AbuelaSusto");
+        if (sustoObj != null)
         {
-            susto.GetComponent<Canvas>().enabled = true;
-            AudioSource audio = susto.GetComponent<AudioSource>();
+            // Activamos el Canvas del susto
+            Canvas canvasSusto = sustoObj.GetComponent<Canvas>();
+            if (canvasSusto != null) canvasSusto.enabled = true;
+
+            // Reproducimos el sonido
+            AudioSource audio = sustoObj.GetComponent<AudioSource>();
             if (audio != null) audio.Play();
-            Invoke("OcultarSusto", 0.5f);
+
+            // Quitamos el 40% del dinero
+            long perdida = (long)(PlayerPersistence.instance.GetCoins() * 0.4f);
+            PlayerPersistence.instance.DeductCoins((int)perdida);
+
+            // Programamos el cierre del susto y destruir la abuela después
+            Invoke("OcultarSustoYMorir", 0.7f);
         }
-        PlayerPersistence.instance.DeductCoins((int)(PlayerPersistence.instance.GetCoins() * 0.4f));
+        else
+        {
+            Debug.LogError("No se encontró el objeto AbuelaSusto en la escena.");
+            FinalizarAbuela();
+        }
     }
 
-    void OcultarSusto()
+    void OcultarSustoYMorir()
     {
-        GameObject susto = GameObject.Find("AbuelaSusto");
-        if (susto != null) susto.GetComponent<Canvas>().enabled = false;
+        GameObject sustoObj = GameObject.Find("AbuelaSusto");
+        if (sustoObj != null) sustoObj.GetComponent<Canvas>().enabled = false;
+        FinalizarAbuela();
+    }
+
+    void FinalizarAbuela()
+    {
+        Destroy(gameObject);
+    }
+
+    void ElegirNuevaDireccion()
+    {
+        float angulo = Random.Range(0f, 360f);
+        direccionPaseo = new Vector3(Mathf.Sin(angulo), 0, Mathf.Cos(angulo)).normalized;
+        cronometroCambio = 0;
     }
 }

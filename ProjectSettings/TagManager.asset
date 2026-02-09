@@ -6,6 +6,7 @@ TagManager:
   tags:
   - Interactable
   - Abuela
+  - Fire
   layers:
   - Default
   - TransparentFX
@@ -13,7 +14,7 @@ TagManager:
   - 
   - Water
   - UI
-  - 
+  - Suelo
   - 
   - 
   - 
