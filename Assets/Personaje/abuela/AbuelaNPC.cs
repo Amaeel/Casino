@@ -91,18 +91,17 @@ public class AbuelaNPC : MonoBehaviour
 
     void IniciarRobo()
     {
-        haSidoInteractuada = true; // Bloquea más robos a esta abuela
-        if (visualPrompt != null) visualPrompt.SetActive(false);
-
-        int probabilidad = Random.Range(0, 100);
-
-        if (probabilidad < 30) // 30% de probabilidad de susto
+        haSidoInteractuada = true;
+        // 25% de susto
+        if (Random.Range(0, 100) < 25)
         {
             EjecutarSusto();
         }
         else
         {
-            PlayerPersistence.instance.AddCoins(Random.Range(100, 301));
+            // Ganancia redonda: 10, 20 o 30
+            int ganancia = Random.Range(1, 4) * 10;
+            PlayerPersistence.instance.AddCoins(ganancia);
             FinalizarAbuela();
         }
     }

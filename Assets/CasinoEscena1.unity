@@ -5080,7 +5080,7 @@ MonoBehaviour:
   pityCampanas: 20
   pityBar: 30
   pitySietes: 60
-  costeApuesta: 0
+  costeApuesta: 20
   premiosPorIcono: 1e0000003c00000078000000f4010000
   probabilidadAzarReal: 8
   audioSource: {fileID: 469644781}
@@ -12110,7 +12110,7 @@ MonoBehaviour:
   pityCampanas: 20
   pityBar: 30
   pitySietes: 60
-  costeApuesta: 0
+  costeApuesta: 20
   premiosPorIcono: 1e0000003c00000078000000f4010000
   probabilidadAzarReal: 8
   audioSource: {fileID: 1130086166}
@@ -15978,7 +15978,7 @@ MonoBehaviour:
   pityCampanas: 20
   pityBar: 30
   pitySietes: 60
-  costeApuesta: 0
+  costeApuesta: 20
   premiosPorIcono: 1e0000003c00000078000000f4010000
   probabilidadAzarReal: 8
   audioSource: {fileID: 1508396170}
