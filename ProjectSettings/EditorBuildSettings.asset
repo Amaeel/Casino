@@ -12,14 +12,13 @@ EditorBuildSettings:
     path: Assets/Scenes/Menu.unity
     guid: c21c3313c79c2034c9f476f3aba30a9e
   - enabled: 1
-    path: Assets/Casa.unity
+    path: Assets/Scenes/Casa.unity
     guid: 5a679e3cc12b2c04c9580f52547c9ad9
   - enabled: 1
-    path: Assets/SimplePoly City - Low Poly Assets/Demo/SimplePoly City - Low Poly
-      Assets_Demo Scene.unity
+    path: Assets/Scenes/SimplePoly City - Low Poly Assets_Demo Scene.unity
     guid: 7e6d3f4e5d896154ab4438845532ac3e
   - enabled: 1
-    path: Assets/CasinoEscena1.unity
+    path: Assets/Scenes/CasinoEscena1.unity
     guid: 00b1fc7b42abce44d902a16d1f917645
   m_configObjects:
     com.unity.input.settings.actions: {fileID: -944628639613478452, guid: 052faaac586de48259a63d0c4782560b, type: 3}
