@@ -4075,7 +4075,7 @@ PrefabInstance:
     m_AddedComponents:
     - targetCorrespondingSourceObject: {fileID: 7215049743366864866, guid: 4e809996e218e5247bc5c9bdd4705129, type: 3}
       insertIndex: -1
-      addedObject: {fileID: 5270233837001193387}
+      addedObject: {fileID: 5270233837001193388}
     - targetCorrespondingSourceObject: {fileID: 5288712025819234212, guid: 4e809996e218e5247bc5c9bdd4705129, type: 3}
       insertIndex: -1
       addedObject: {fileID: 942426525}
@@ -4090,7 +4090,18 @@ RectTransform:
   m_CorrespondingSourceObject: {fileID: 6044734006667246733, guid: 4e809996e218e5247bc5c9bdd4705129, type: 3}
   m_PrefabInstance: {fileID: 5270233837001193384}
   m_PrefabAsset: {fileID: 0}
---- !u!114 &5270233837001193387
+--- !u!114 &5270233837001193387 stripped
+MonoBehaviour:
+  m_CorrespondingSourceObject: {fileID: 1162496802205039162, guid: 4e809996e218e5247bc5c9bdd4705129, type: 3}
+  m_PrefabInstance: {fileID: 5270233837001193384}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 5270233837001193385}
+  m_Enabled: 0
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 84234946e76614f43893ef9f1508c1d9, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::Espenta_RB
+--- !u!114 &5270233837001193388
 MonoBehaviour:
   m_ObjectHideFlags: 0
   m_CorrespondingSourceObject: {fileID: 0}
@@ -4102,10 +4113,10 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: cf023b71eaafd92408ce3d39089ba089, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::PlayerPersistence
-  coins: 0
+  coins: 20
   deudaTotal: 0
-  playerMovementScript: {fileID: 0}
-  verticalMovementScript: {fileID: 0}
+  playerMovementScript: {fileID: 5270233837001193387}
+  verticalMovementScript: {fileID: 5270233837001193387}
   pantallaGameOver: {fileID: 504324446}
 --- !u!1660057539 &9223372036854775807
 SceneRoots:

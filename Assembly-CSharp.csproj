@@ -132,6 +132,7 @@
     <Compile Include="Assets\TextMesh Pro\Examples &amp; Extras\Scripts\Benchmark01.cs" />
     <Compile Include="Assets\TextMesh Pro\Examples &amp; Extras\Scripts\TextMeshSpawner.cs" />
     <Compile Include="Assets\CasinoEscena\TeletransporteEscena.cs" />
+    <Compile Include="Assets\Menu\MainMenuController.cs" />
     <Compile Include="Assets\Tomerinio\LEDLightBlocks\Example Scene\Standard Assets\Utility\PlatformSpecificContent.cs" />
     <Compile Include="Assets\Tomerinio\LEDLightBlocks\Example Scene\Standard Assets\Utility\AlphaButtonClickMask.cs" />
     <Compile Include="Assets\Joystick Pack\Scripts\Joysticks\DynamicJoystick.cs" />

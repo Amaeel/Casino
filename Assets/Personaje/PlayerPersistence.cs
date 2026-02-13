@@ -3,183 +3,308 @@ using UnityEngine.SceneManagement;
 
 public class PlayerPersistence : MonoBehaviour
 {
+    // Patrón Singleton
     public static PlayerPersistence instance;
 
-    [Header("Econom�a y Deuda")]
-    public long coins = 20;
-    private const long MAX_COINS = 99999999;
-    public long deudaTotal;
-    private float coinsPerSecond = 0f;
-    private float passiveUpdateTimer = 0f;
+    [Header("Estadísticas del Jugador")]
+    public float coins = 100f;
+    public float deudaTotal = 1000f;
+    public bool deudaPagada = false;
 
-    [Header("Scripts de Movimiento")]
+    [Header("Referencias de Scripts")]
     public MonoBehaviour playerMovementScript;
     public MonoBehaviour verticalMovementScript;
 
-    [Header("Game Over UI")]
+    [Header("Referencias UI")]
     public GameObject pantallaGameOver;
 
-    private Vector3 nextSpawnPosition;
-    private bool shouldTeleport = false;
-
-    // ESTA VARIABLE ES OBLIGATORIA PARA QUE NO SE CONGELE EL BOT�N
-    private bool yaMurio = false;
+    private GestionMuerte gestionMuerte;
+    private bool juegoTerminado = false;
+    private bool controlsEnabled = true;
 
     void Awake()
     {
+        // Implementar Singleton
         if (instance == null)
         {
             instance = this;
-            DontDestroyOnLoad(gameObject);
-            CargarDatos();
+            // No destruir este objeto al cambiar de escena si es necesario
+            // DontDestroyOnLoad(gameObject); // Descomenta si quieres que persista entre escenas
         }
         else
         {
             Destroy(gameObject);
             return;
         }
-        SceneManager.sceneLoaded += OnSceneLoaded;
-        ConectarScripts();
     }
 
     void Start()
     {
-        if (!PlayerPrefs.HasKey("Monedas_Guardadas"))
-        {
-            coins = 20;
-            deudaTotal = Random.Range(80, 101) * 1000;
-            GuardarDatos();
-        }
-        if (pantallaGameOver != null) pantallaGameOver.SetActive(false);
-    }
+        // Cargar datos guardados
+        CargarDatos();
 
-    // --- AQU� EST�N LOS BOTONES QUE FALTABAN ---
-    // TIENES QUE ARRASTRAR "PlayerPersistence" AL ONCLICK DEL BOT�N EN UNITY
-    public void BotonReintentar()
-    {
-        yaMurio = false; // Reseteamos el bloqueo
-        Time.timeScale = 1f; // Descongelamos el juego
-        SceneManager.LoadScene(SceneManager.GetActiveScene().name);
-    }
-
-    public void BotonSalirAlMenu()
-    {
-        yaMurio = false; // Reseteamos el bloqueo
-        Time.timeScale = 1f; // IMPRESCINDIBLE: Descongelar para poder cambiar de escena
-        SceneManager.LoadScene("Menu"); // Aseg�rate de que tu escena se llama "Menu"
-    }
-    // -------------------------------------------
-
-    public long GetCoins() => coins;
-
-    public bool CanAfford(int cost) => coins >= (long)cost;
-
-    public void AddCoins(int amount)
-    {
-        coins += amount;
-        if (coins > MAX_COINS) coins = MAX_COINS;
-
-        // MODIFICADO: Solo ejecuta muerte si no ha muerto ya
-        if (coins <= 0 && !yaMurio) { coins = 0; EjecutarGameOver(); }
-
-        GuardarDatos();
-    }
-
-    public void DeductCoins(int cost)
-    {
-        coins -= cost;
-
-        // MODIFICADO: Solo ejecuta muerte si no ha muerto ya
-        if (coins <= 0 && !yaMurio) { coins = 0; EjecutarGameOver(); }
-
-        GuardarDatos();
-    }
-
-    public void LoadNewScene(string sceneName, Vector3 spawnPoint)
-    {
-        nextSpawnPosition = spawnPoint;
-        shouldTeleport = true;
-        GuardarDatos();
-        SceneManager.LoadScene(sceneName);
-    }
-
-    private void OnSceneLoaded(Scene scene, LoadSceneMode mode)
-    {
-        Time.timeScale = 1f; // Asegurar que el tiempo corre al cambiar de escena
-        yaMurio = false; // Resetear el estado de muerte
-
-        if (shouldTeleport)
-        {
-            transform.position = nextSpawnPosition;
-            shouldTeleport = false;
-        }
-        ConectarScripts();
-
-        // Parche de seguridad: Si la pantalla de muerte se pierde al cambiar de escena, la busca
-        if (pantallaGameOver == null) pantallaGameOver = GameObject.Find("PantallaMuerte");
-        if (pantallaGameOver != null) pantallaGameOver.SetActive(false);
-    }
-
-    public void EnablePlayerControls()
-    {
-        if (playerMovementScript != null) playerMovementScript.enabled = true;
-        if (verticalMovementScript != null) verticalMovementScript.enabled = true;
-    }
-
-    public void DisablePlayerControls()
-    {
-        if (playerMovementScript != null) playerMovementScript.enabled = false;
-        if (verticalMovementScript != null) verticalMovementScript.enabled = false;
-    }
-
-    private void ConectarScripts()
-    {
-        if (playerMovementScript == null) playerMovementScript = GetComponent("Moviment_Cub") as MonoBehaviour;
-        if (verticalMovementScript == null) verticalMovementScript = GetComponent("Moviment_vertical") as MonoBehaviour;
-    }
-
-    private void EjecutarGameOver()
-    {
+        // Obtener referencia al script de gestión de muerte
         if (pantallaGameOver != null)
         {
-            yaMurio = true; // ACTIVAMOS EL BLOQUEO para que no se repita el bucle
-            pantallaGameOver.SetActive(true);
-
-            Time.timeScale = 0f; // Aqu� se pausa el juego
-
-            Cursor.lockState = CursorLockMode.None;
-            Cursor.visible = true;
-
-            DisablePlayerControls();
-
-            PlayerPrefs.DeleteAll();
-            PlayerPrefs.Save();
+            gestionMuerte = pantallaGameOver.GetComponent<GestionMuerte>();
         }
-    }
 
-    public void GuardarDatos()
-    {
-        PlayerPrefs.SetString("Monedas_Guardadas", coins.ToString());
-        PlayerPrefs.SetString("Deuda_Guardada", deudaTotal.ToString());
-        PlayerPrefs.Save();
-    }
-
-    public void CargarDatos()
-    {
-        string monedasStr = PlayerPrefs.GetString("Monedas_Guardadas", "300");
-        string deudaStr = PlayerPrefs.GetString("Deuda_Guardada", "0");
-        long.TryParse(monedasStr, out coins);
-        long.TryParse(deudaStr, out deudaTotal);
+        // Verificar condición de muerte al iniciar
+        VerificarMuerte();
     }
 
     void Update()
     {
-        passiveUpdateTimer += Time.deltaTime;
-        if (passiveUpdateTimer >= 1f)
+        // Verificar constantemente si el jugador debe morir
+        if (!juegoTerminado)
         {
-            int passiveGain = Mathf.RoundToInt(coinsPerSecond);
-            if (passiveGain > 0) AddCoins(passiveGain);
-            passiveUpdateTimer -= 1f;
+            VerificarMuerte();
+        }
+    }
+
+    void CargarDatos()
+    {
+        // Cargar dinero
+        if (PlayerPrefs.HasKey("Dinero"))
+        {
+            coins = PlayerPrefs.GetFloat("Dinero");
+        }
+        else
+        {
+            coins = 100f; // Valor inicial
+            PlayerPrefs.SetFloat("Dinero", coins);
+        }
+
+        // Cargar deuda
+        if (PlayerPrefs.HasKey("Deuda"))
+        {
+            deudaTotal = PlayerPrefs.GetFloat("Deuda");
+        }
+        else
+        {
+            deudaTotal = 1000f; // Valor inicial
+            PlayerPrefs.SetFloat("Deuda", deudaTotal);
+        }
+
+        // Cargar estado de deuda pagada
+        if (PlayerPrefs.HasKey("DeudaPagada"))
+        {
+            deudaPagada = PlayerPrefs.GetInt("DeudaPagada") == 1;
+        }
+        else
+        {
+            deudaPagada = false;
+            PlayerPrefs.SetInt("DeudaPagada", 0);
+        }
+
+        PlayerPrefs.Save();
+    }
+
+    public void GuardarDatos()
+    {
+        PlayerPrefs.SetFloat("Dinero", coins);
+        PlayerPrefs.SetFloat("Deuda", deudaTotal);
+        PlayerPrefs.SetInt("DeudaPagada", deudaPagada ? 1 : 0);
+        PlayerPrefs.Save();
+    }
+
+    void VerificarMuerte()
+    {
+        // Condiciones de muerte:
+        // 1. Dinero llega a 0 o menos
+        // 2. Dinero es menor que 20
+        if (coins <= 0 || coins < 20)
+        {
+            MorirJugador();
+        }
+    }
+
+    void MorirJugador()
+    {
+        if (juegoTerminado) return;
+
+        juegoTerminado = true;
+
+        // Desactivar el movimiento del jugador
+        DisablePlayerControls();
+
+        // Mostrar la pantalla de muerte
+        if (gestionMuerte != null)
+        {
+            gestionMuerte.MostrarPantallaMuerte();
+        }
+        else if (pantallaGameOver != null)
+        {
+            pantallaGameOver.SetActive(true);
+            Time.timeScale = 0f;
+        }
+    }
+
+    // ============================================
+    // MÉTODOS PARA TIENDA TRUMP Y OTROS SCRIPTS
+    // ============================================
+
+    /// <summary>
+    /// Obtiene el dinero actual del jugador
+    /// </summary>
+    public float GetCoins()
+    {
+        return coins;
+    }
+
+    /// <summary>
+    /// Verifica si el jugador tiene suficiente dinero
+    /// </summary>
+    public bool CanAfford(float amount)
+    {
+        return coins >= amount;
+    }
+
+    /// <summary>
+    /// Resta dinero del jugador
+    /// </summary>
+    public void DeductCoins(float amount)
+    {
+        coins -= amount;
+        if (coins < 0) coins = 0;
+        GuardarDatos();
+    }
+
+    /// <summary>
+    /// Añade dinero al jugador
+    /// </summary>
+    public void AddCoins(float amount)
+    {
+        coins += amount;
+        GuardarDatos();
+    }
+
+    /// <summary>
+    /// Desactiva los controles del jugador
+    /// </summary>
+    public void DisablePlayerControls()
+    {
+        controlsEnabled = false;
+
+        if (playerMovementScript != null)
+        {
+            playerMovementScript.enabled = false;
+        }
+
+        if (verticalMovementScript != null)
+        {
+            verticalMovementScript.enabled = false;
+        }
+    }
+
+    /// <summary>
+    /// Activa los controles del jugador
+    /// </summary>
+    public void EnablePlayerControls()
+    {
+        if (juegoTerminado) return; // No reactivar si el juego terminó
+
+        controlsEnabled = true;
+
+        if (playerMovementScript != null)
+        {
+            playerMovementScript.enabled = true;
+        }
+
+        if (verticalMovementScript != null)
+        {
+            verticalMovementScript.enabled = true;
+        }
+    }
+
+    // ============================================
+    // MÉTODOS LEGACY (Compatibilidad)
+    // ============================================
+
+    /// <summary>
+    /// Método público para añadir dinero (alias de AddCoins)
+    /// </summary>
+    public void AñadirDinero(float cantidad)
+    {
+        AddCoins(cantidad);
+    }
+
+    /// <summary>
+    /// Método público para restar dinero (alias de DeductCoins)
+    /// </summary>
+    public void RestarDinero(float cantidad)
+    {
+        DeductCoins(cantidad);
+    }
+
+    /// <summary>
+    /// Método público para añadir deuda
+    /// </summary>
+    public void AñadirDeuda(float cantidad)
+    {
+        deudaTotal += cantidad;
+        GuardarDatos();
+    }
+
+    /// <summary>
+    /// Método público para pagar deuda
+    /// </summary>
+    public void PagarDeuda(float cantidad)
+    {
+        deudaTotal -= cantidad;
+        if (deudaTotal <= 0)
+        {
+            deudaTotal = 0;
+            deudaPagada = true;
+        }
+        GuardarDatos();
+    }
+
+    /// <summary>
+    /// Método para obtener el dinero actual
+    /// </summary>
+    public float ObtenerDinero()
+    {
+        return coins;
+    }
+
+    /// <summary>
+    /// Método para obtener la deuda actual
+    /// </summary>
+    public float ObtenerDeuda()
+    {
+        return deudaTotal;
+    }
+
+    /// <summary>
+    /// Método para establecer el dinero directamente
+    /// </summary>
+    public void EstablecerDinero(float cantidad)
+    {
+        coins = cantidad;
+        GuardarDatos();
+    }
+
+    /// <summary>
+    /// Método para establecer la deuda directamente
+    /// </summary>
+    public void EstablecerDeuda(float cantidad)
+    {
+        deudaTotal = cantidad;
+        GuardarDatos();
+    }
+
+    void OnApplicationQuit()
+    {
+        GuardarDatos();
+    }
+
+    void OnDestroy()
+    {
+        // Limpiar la instancia singleton cuando se destruya
+        if (instance == this)
+        {
+            instance = null;
         }
     }
 }

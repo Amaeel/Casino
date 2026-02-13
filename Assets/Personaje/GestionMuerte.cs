@@ -3,29 +3,49 @@ using UnityEngine.SceneManagement;
 
 public class GestionMuerte : MonoBehaviour
 {
-    public GameObject panelMuerte; // Arrastra aquí tu objeto PantallaMuerte
+    [Header("Referencias UI")]
+    public GameObject panelMuerte;
 
-    public void EntrarEnBancarrota()
+    void Start()
     {
-        panelMuerte.SetActive(true); // Esto encenderá el panel de golpe
-        Time.timeScale = 0f;        // Pausa el juego
-        Cursor.lockState = CursorLockMode.None; // Libera el ratón para poder clicar
-        Cursor.visible = true;
+        // Asegurarse de que el panel esté oculto al inicio
+        if (panelMuerte != null)
+        {
+            panelMuerte.SetActive(false);
+        }
+    }
+
+    public void MostrarPantallaMuerte()
+    {
+        if (panelMuerte != null)
+        {
+            panelMuerte.SetActive(true);
+            Time.timeScale = 0f; // Pausar el juego
+            Cursor.visible = true;
+            Cursor.lockState = CursorLockMode.None;
+        }
     }
 
     public void BotonReintentar()
     {
+        // Reanudar el tiempo
         Time.timeScale = 1f;
-        SceneManager.LoadScene(SceneManager.GetActiveScene().name);
+
+        // Resetear el dinero y la deuda
+        PlayerPrefs.SetFloat("Dinero", 100f); // Valor inicial del dinero
+        PlayerPrefs.SetFloat("Deuda", 1000f); // Valor inicial de la deuda (ajusta según tu juego)
+        PlayerPrefs.Save();
+
+        // Recargar la escena de Casa
+        SceneManager.LoadScene("Casa");
     }
 
     public void SalirAlMenu()
     {
-        Debug.Log("Forzando carga de escena 0...");
+        // Reanudar el tiempo
         Time.timeScale = 1f;
-        AudioListener.pause = false; // Por si acaso el audio bloquea algo
 
-        // Cambiamos el nombre por el índice 0 (que suele ser el Menú)
-        SceneManager.LoadScene(0);
+        // Cargar la escena del menú principal
+        SceneManager.LoadScene("Menu");
     }
 }
