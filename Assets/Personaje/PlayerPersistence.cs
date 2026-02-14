@@ -14,6 +14,7 @@ public class PlayerPersistence : MonoBehaviour
     [Header("Referencias de Scripts")]
     public MonoBehaviour playerMovementScript;
     public MonoBehaviour verticalMovementScript;
+    public CameraManager cameraManager; // Gestor de cámara
 
     [Header("Referencias UI")]
     public GameObject pantallaGameOver;
@@ -21,6 +22,11 @@ public class PlayerPersistence : MonoBehaviour
     private GestionMuerte gestionMuerte;
     private bool juegoTerminado = false;
     private bool controlsEnabled = true;
+
+    // ========== NUEVO: Variables para guardado automático ==========
+    private float tiempoUltimoGuardado = 0f;
+    private float intervaloGuardado = 5f; // Guardar cada 5 segundos
+    // ================================================================
 
     void Awake()
     {
@@ -40,8 +46,31 @@ public class PlayerPersistence : MonoBehaviour
 
     void Start()
     {
+        // ========== NUEVO: Guardar escena actual ==========
+        GuardarEscenaActual();
+        // ==================================================
+
         // Cargar datos guardados
         CargarDatos();
+
+        // Verificar si hay una posición de spawn guardada
+        if (PlayerPrefs.GetInt("UseSpawnPosition", 0) == 1)
+        {
+            // Obtener la posición guardada
+            float spawnX = PlayerPrefs.GetFloat("SpawnX", 0f);
+            float spawnY = PlayerPrefs.GetFloat("SpawnY", 0f);
+            float spawnZ = PlayerPrefs.GetFloat("SpawnZ", 0f);
+
+            // Mover al jugador a esa posición
+            transform.position = new Vector3(spawnX, spawnY, spawnZ);
+
+            // Limpiar el flag para que no se use en la próxima escena
+            PlayerPrefs.SetInt("UseSpawnPosition", 0);
+            PlayerPrefs.Save();
+        }
+
+        // Verificar que haya una cámara en la escena
+        VerificarCamara();
 
         // Obtener referencia al script de gestión de muerte
         if (pantallaGameOver != null)
@@ -53,6 +82,33 @@ public class PlayerPersistence : MonoBehaviour
         VerificarMuerte();
     }
 
+    void VerificarCamara()
+    {
+        // Si no hay CameraManager asignado, intentar encontrarlo
+        if (cameraManager == null)
+        {
+            cameraManager = FindObjectOfType<CameraManager>();
+        }
+
+        // Si no hay cámara principal, buscarla o advertir
+        Camera camaraPrincipal = Camera.main;
+        if (camaraPrincipal == null)
+        {
+            camaraPrincipal = FindObjectOfType<Camera>();
+
+            if (camaraPrincipal == null)
+            {
+                Debug.LogWarning("No se encontró cámara en la escena. Considera añadir una cámara o el script CameraManager.");
+            }
+        }
+
+        // Si tenemos CameraManager, establecer el jugador como objetivo
+        if (cameraManager != null)
+        {
+            cameraManager.EstablecerObjetivo(transform);
+        }
+    }
+
     void Update()
     {
         // Verificar constantemente si el jugador debe morir
@@ -60,7 +116,33 @@ public class PlayerPersistence : MonoBehaviour
         {
             VerificarMuerte();
         }
+
+        // ========== NUEVO: Guardar posición cada 5 segundos ==========
+        tiempoUltimoGuardado += Time.deltaTime;
+        if (tiempoUltimoGuardado >= intervaloGuardado)
+        {
+            GuardarPosicionActual();
+            tiempoUltimoGuardado = 0f;
+        }
+        // =============================================================
     }
+
+    // ========== NUEVO: Métodos de guardado automático ==========
+    void GuardarEscenaActual()
+    {
+        string escenaActual = SceneManager.GetActiveScene().name;
+        PlayerPrefs.SetString("UltimaEscena", escenaActual);
+        PlayerPrefs.Save();
+    }
+
+    void GuardarPosicionActual()
+    {
+        PlayerPrefs.SetFloat("UltimaPosX", transform.position.x);
+        PlayerPrefs.SetFloat("UltimaPosY", transform.position.y);
+        PlayerPrefs.SetFloat("UltimaPosZ", transform.position.z);
+        PlayerPrefs.Save();
+    }
+    // ===========================================================
 
     void CargarDatos()
     {
@@ -82,8 +164,11 @@ public class PlayerPersistence : MonoBehaviour
         }
         else
         {
-            deudaTotal = 1000f; // Valor inicial
+            // Generar deuda aleatoria entre 80,000 y 100,000 (en números enteros de miles)
+            int deudaEnMiles = Random.Range(80, 101); // 80 a 100 inclusive
+            deudaTotal = deudaEnMiles * 1000f; // Convertir a miles (80000, 81000, 82000... 100000)
             PlayerPrefs.SetFloat("Deuda", deudaTotal);
+            Debug.Log("Nueva deuda generada: $" + deudaTotal);
         }
 
         // Cargar estado de deuda pagada
@@ -294,9 +379,79 @@ public class PlayerPersistence : MonoBehaviour
         GuardarDatos();
     }
 
+    /// <summary>
+    /// Carga una nueva escena y guarda los datos antes de cambiar
+    /// </summary>
+    public void LoadNewScene(string sceneName)
+    {
+        // ========== NUEVO: Guardar escena como última escena ==========
+        PlayerPrefs.SetString("UltimaEscena", sceneName);
+        // ==============================================================
+
+        // Guardar los datos antes de cambiar de escena
+        GuardarDatos();
+
+        // Reanudar el tiempo por si estaba pausado
+        Time.timeScale = 1f;
+
+        // Cargar la nueva escena
+        SceneManager.LoadScene(sceneName);
+    }
+
+    /// <summary>
+    /// Carga una nueva escena y coloca al jugador en una posición específica
+    /// </summary>
+    public void LoadNewScene(string sceneName, Vector3 spawnPosition)
+    {
+        // ========== NUEVO: Guardar escena como última escena ==========
+        PlayerPrefs.SetString("UltimaEscena", sceneName);
+        // ==============================================================
+
+        // Guardar la posición de spawn para usarla cuando se cargue la escena
+        PlayerPrefs.SetFloat("SpawnX", spawnPosition.x);
+        PlayerPrefs.SetFloat("SpawnY", spawnPosition.y);
+        PlayerPrefs.SetFloat("SpawnZ", spawnPosition.z);
+        PlayerPrefs.SetInt("UseSpawnPosition", 1);
+
+        // ========== NUEVO: También guardar como última posición ==========
+        PlayerPrefs.SetFloat("UltimaPosX", spawnPosition.x);
+        PlayerPrefs.SetFloat("UltimaPosY", spawnPosition.y);
+        PlayerPrefs.SetFloat("UltimaPosZ", spawnPosition.z);
+        // =================================================================
+
+        PlayerPrefs.Save();
+
+        // Guardar los datos del jugador antes de cambiar de escena
+        GuardarDatos();
+
+        // Reanudar el tiempo por si estaba pausado
+        Time.timeScale = 1f;
+
+        // Cargar la nueva escena
+        SceneManager.LoadScene(sceneName);
+    }
+
+    /// <summary>
+    /// Carga una nueva escena por índice
+    /// </summary>
+    public void LoadNewScene(int sceneIndex)
+    {
+        // Guardar los datos antes de cambiar de escena
+        GuardarDatos();
+
+        // Reanudar el tiempo por si estaba pausado
+        Time.timeScale = 1f;
+
+        // Cargar la nueva escena
+        SceneManager.LoadScene(sceneIndex);
+    }
+
     void OnApplicationQuit()
     {
         GuardarDatos();
+        // ========== NUEVO: Guardar posición al salir ==========
+        GuardarPosicionActual();
+        // ======================================================
     }
 
     void OnDestroy()

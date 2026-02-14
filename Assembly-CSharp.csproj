@@ -82,6 +82,7 @@
     <Compile Include="Assets\Tomerinio\LEDLightBlocks\Example Scene\Standard Assets\Utility\EventSystemChecker.cs" />
     <Compile Include="Assets\Personaje\Espenta_RB.cs" />
     <Compile Include="Assets\Personaje\GestionMuerte.cs" />
+    <Compile Include="Assets\Personaje\CameraManager.cs" />
     <Compile Include="Assets\TextMesh Pro\Examples &amp; Extras\Scripts\TMP_ExampleScript_01.cs" />
     <Compile Include="Assets\TextMesh Pro\Examples &amp; Extras\Scripts\TMPro_InstructionOverlay.cs" />
     <Compile Include="Assets\TextMesh Pro\Examples &amp; Extras\Scripts\VertexShakeB.cs" />
